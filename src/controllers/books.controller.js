@@ -21,13 +21,34 @@ export const getAllBooks = async (request, response) => {
 };
 
 export const getBookById = async (request, response) => {
+
+try {
     const idFromUrl = request.params?.id;
 
-    const response = await prisma.book.findUnique({
+    const book = await prisma.book.findUnique({
         where: {
             id: Number(idFromUrl)
         }
     });
+
+    if (!book) {
+        response.status(404).json({
+            message: 'Not found'
+        });
+    }
+
+    response.status(200).json({
+        message: 'Successfully Found book',
+        data: book
+    });
+} catch (exception) {
+    console.log(exception);
+    response.status(500).json({
+        message: 'Something went wrong',
+        error: exception.message
+    });
+    
+}
 };
 
 export const createBook = (request, response) => {};

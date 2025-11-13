@@ -1,4 +1,4 @@
-import prisma from "../config/prisma.config.js";
+import prisma from "../config/prisma.js";
 
 export const getAllBooks = async (request, response) => {
     
@@ -20,10 +20,13 @@ export const getAllBooks = async (request, response) => {
     
 };
 
-export const getBookById = (request, response) => {
-    
-    response.json({ 
-        id: request.params?.id 
+export const getBookById = async (request, response) => {
+    const idFromUrl = request.params?.id;
+
+    const response = await prisma.book.findUnique({
+        where: {
+            id: Number(idFromUrl)
+        }
     });
 };
 

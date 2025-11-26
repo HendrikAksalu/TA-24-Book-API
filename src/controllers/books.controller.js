@@ -1,140 +1,149 @@
 import prisma from '../config/prisma.js';
+import { QueryBuilder } from "../utils/QueryBuilder.js";
 
 export const getAllBooks = async (request, response) => {
-  try {
-    // Extract query params with defaults
-    const {
-      sort = "id",           // default sort field
-      sort_direction = "asc",// default order
-      take = 10,             // default page size
-      page = 1               // default page number
-    } = request.query;
+    try {
+        const Builder = new QueryBuilder(request.query, {
+            defaultSort: 'created_at',
+            defaultTake: 20,
+            allowedSorts: ['id', 'title', 'description', 'created_at', 'updated_at'],
+            allowedSearchFields: ['title', 'description'],
+            allowedIncludes: {
+                'authors': { include: { author: true }}
+            }
+        });
 
-    // Parse numbers safely
-    const takeNumber = Number(take) || 10;
-    const pageNumber = Number(page) || 1;
-    const skip = takeNumber * (pageNumber - 1);
+        const prismaQuery = Builder.buildPrismaQuery();
 
-    const books = await prisma.book.findMany({
-      orderBy: {
-        [sort]: sort_direction
-      },
-      skip,
-      take: takeNumber
-    });
+        console.log(prismaQuery);
 
-    response.json({
-      message: 'All books',
-      data: books
-    });
-  } catch (exception) {
-    console.error(exception);
-    response.status(500).json({
-      message: "Something went wrong",
-      error: exception.message
-    });
-  }
+        const [books, count] = await Promise.all([
+            prisma.book.findMany(prismaQuery),
+            prisma.book.count({ where: prismaQuery.where })
+        ]);
+
+        const meta = Builder.getPaginationMeta(count);
+
+        response.status(200).json({
+            message: 'All books',
+            data: books,
+            meta,
+        });
+    } catch (exception) {
+        console.log(exception);
+        response.status(500).json({
+            message: "Something went wrong",
+            error: exception.message
+        })
+    }
 };
 
 export const getBookById = async (request, response) => {
-  try {
-    const idFromURL = Number(request.params?.id);
+    try {
+        const idFromURL = request.params?.id;
 
-    if (isNaN(idFromURL)) {
-      return response.status(400).json({ message: "Invalid book ID" });
+        const book = await prisma.book.findUnique({
+            where: {
+                id: Number(idFromURL)
+            }
+        });
+
+        if (!book) {
+            response.status(404).json({
+                message: 'Not Found'
+            })
+        }
+
+        response.status(200).json({
+            message: 'Successfully Found Book',
+            data: book
+        })
+    } catch (exception) {
+        response.status(500).json({
+            message: 'Something went wrong',
+            error: exception.message
+        })
     }
-
-    const book = await prisma.book.findUnique({
-      where: { id: idFromURL }
-    });
-
-    if (!book) {
-      return response.status(404).json({ message: 'Not Found' });
-    }
-
-    response.status(200).json({
-      message: 'Successfully Found Book',
-      data: book
-    });
-  } catch (exception) {
-    response.status(500).json({
-      message: 'Something went wrong',
-      error: exception.message
-    });
-  }
 };
 
 export const createBook = async (request, response) => {
-  try {
-    const { title, description, thumbnail_url, release_year } = request.body;
+    try {
+        const { title, description, thumbnail_url, release_year } = request.body;
 
-    const newBook = await prisma.book.create({
-      data: {
-        title,
-        description,
-        thumbnail_url,
-        release_year: Number(release_year),
-      }
-    });
+        const newBook = await prisma.book.create({
+            data: {
+                title,
+                description,
+                thumbnail_url,
+                release_year: Number(release_year),
+            }
+        });
 
-    response.status(201).json({
-      message: 'Successfully Created Book',
-      data: newBook
-    });
-  } catch (exception) {
-    response.status(500).json({
-      message: 'Something went wrong',
-      error: exception.message
-    });
-  }
+        response.status(201).json({
+            message: 'Successfully Created Book',
+            data: newBook
+        })
+    } catch (exception) {
+        response.status(500).json({
+            message: 'Something went wrong',
+            error: exception.message
+        })
+    }
 };
 
 export const updateBook = async (request, response) => {
-  try {
-    const { id } = request.params;
-    const { title, description, thumbnail_url, release_year } = request.body;
+    try {
+        const { id } = request.params;
+        const { title, description, thumbnail_url, release_year } = request.body;
 
-    const updatedBook = await prisma.book.update({
-      where: { id: Number(id) },
-      data: {
-        title,
-        description,
-        thumbnail_url,
-        release_year: Number(release_year),
-      }
-    });
+        const updatedBook = await prisma.book.update({
+            where: {
+                id: Number(id),
+            },
+            data: {
+                title,
+                description,
+                thumbnail_url,
+                release_year: Number(release_year),
+            }
+        });
 
-    response.status(200).json({
-      message: 'Successfully Updated Book',
-      data: updatedBook
-    });
-  } catch (exception) {
-    console.error(exception);
-    response.status(500).json({
-      message: 'Something went wrong',
-      error: exception.message
-    });
-  }
+        if (!updatedBook) {
+            response.status(404).json({
+                message: 'Not Found'
+            })
+        }
+
+        response.status(200).json({
+            message: 'Successfully Updated Book',
+            data: updatedBook
+        })
+
+    } catch (exception) {
+        response.status(500).json({
+            message: 'Something went wrong',
+            error: exception.message
+        })
+    }
 };
 
 export const deleteBook = async (request, response) => {
-  try {
-    const bookId = Number(request.params?.id);
+    try {
+        const bookId = request.params?.id;
 
-    if (isNaN(bookId)) {
-      return response.status(400).json({ message: "Invalid book ID" });
+        await prisma.book.delete({
+            where: {
+                id: Number(bookId)
+            }
+        })
+
+        response.status(200).json({
+            message: 'Successfully Deleted',
+        })
+    } catch (exception) {
+        response.status(500).json({
+            message: 'Something went wrong',
+            error: exception.message
+        })
     }
-
-    await prisma.book.delete({ where: { id: bookId } });
-
-    response.status(200).json({
-      message: 'Successfully Deleted',
-    });
-  } catch (exception) {
-    console.error(exception);
-    response.status(500).json({
-      message: 'Something went wrong',
-      error: exception.message
-    });
-  }
 };

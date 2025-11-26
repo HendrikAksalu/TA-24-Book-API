@@ -1,139 +1,123 @@
 import prisma from '../config/prisma.js';
 
 export const getAllAuthors = async (request, response) => {
-  try {
-    // Default query params
-    const {
-      sort = "id",             // default sort field
-      sort_direction = "asc",  // default sort direction
-      take = 10,               // default page size
-      page = 1                 // default page number
-    } = request.query;
+    try {
 
-    const takeNumber = Number(take) || 10;
-    const pageNumber = Number(page) || 1;
-    const skip = takeNumber * (pageNumber - 1);
+        const authors = await prisma.author.findMany();
 
-    const authors = await prisma.author.findMany({
-      orderBy: {
-        [sort]: sort_direction
-      },
-      skip,
-      take: takeNumber
-    });
-
-    response.json({
-      message: 'All authors',
-      data: authors
-    });
-  } catch (exception) {
-    console.error(exception);
-    response.status(500).json({
-      message: "Something went wrong",
-      error: exception.message
-    });
-  }
+        response.json({
+            message: 'All authors',
+            data: authors
+        })
+    } catch (exception) {
+        console.log(exception);
+        response.status(500).json({
+            message: "Something went wrong",
+            error: exception.message
+        })
+    }
 };
 
 export const getAuthorById = async (request, response) => {
-  try {
-    const idFromURL = Number(request.params?.id);
+    try {
+        const idFromURL = request.params?.id;
 
-    if (isNaN(idFromURL)) {
-      return response.status(400).json({ message: "Invalid author ID" });
+        const book = await prisma.author.findUnique({
+            where: {
+                id: Number(idFromURL)
+            }
+        });
+
+        if (!book) {
+            response.status(404).json({
+                message: 'Not Found'
+            })
+        }
+
+        response.status(200).json({
+            message: 'Successfully Found Author',
+            data: book
+        })
+    } catch (exception) {
+        response.status(500).json({
+            message: 'Something went wrong',
+            error: exception.message
+        })
     }
-
-    const author = await prisma.author.findUnique({
-      where: { id: idFromURL }
-    });
-
-    if (!author) {
-      return response.status(404).json({ message: 'Not Found' });
-    }
-
-    response.status(200).json({
-      message: 'Successfully Found Author',
-      data: author
-    });
-  } catch (exception) {
-    response.status(500).json({
-      message: 'Something went wrong',
-      error: exception.message
-    });
-  }
 };
 
 export const createAuthor = async (request, response) => {
-  try {
-    const { name, bio, avatar_url, birth_year } = request.body;
+    try {
+        const { name } = request.body;
 
-    const newAuthor = await prisma.author.create({
-      data: {
-        name,
-        bio,
-        avatar_url,
-        birth_year: Number(birth_year)
-      }
-    });
+        const newBook = await prisma.author.create({
+            data: {
+                name
+            }
+        });
 
-    response.status(201).json({
-      message: 'Successfully Created Author',
-      data: newAuthor
-    });
-  } catch (exception) {
-    response.status(500).json({
-      message: 'Something went wrong',
-      error: exception.message
-    });
-  }
+        response.status(201).json({
+            message: 'Successfully Created Author',
+            data: newBook
+        })
+    } catch (exception) {
+        response.status(500).json({
+            message: 'Something went wrong',
+            error: exception.message
+        })
+    }
 };
 
 export const updateAuthor = async (request, response) => {
-  try {
-    const { id } = request.params;
-    const { name, bio, avatar_url, birth_year } = request.body;
+    try {
+        const { id } = request.params;
+        const { name } = request.body;
 
-    const updatedAuthor = await prisma.author.update({
-      where: { id: Number(id) },
-      data: {
-        name,
-        bio,
-        avatar_url,
-        birth_year: Number(birth_year)
-      }
-    });
+        const updatedBook = await prisma.author.update({
+            where: {
+                id: Number(id),
+            },
+            data: {
+                name
+            }
+        });
 
-    response.status(200).json({
-      message: 'Successfully Updated Author',
-      data: updatedAuthor
-    });
-  } catch (exception) {
-    console.error(exception);
-    response.status(500).json({
-      message: 'Something went wrong',
-      error: exception.message
-    });
-  }
+        if (!updatedBook) {
+            response.status(404).json({
+                message: 'Not Found'
+            })
+        }
+
+        response.status(200).json({
+            message: 'Successfully Updated Author',
+            data: updatedBook
+        })
+
+    } catch (exception) {
+        response.status(500).json({
+            message: 'Something went wrong',
+            error: exception.message
+        })
+    }
 };
 
 export const deleteAuthor = async (request, response) => {
-  try {
-    const authorId = Number(request.params?.id);
+    try {
+        const bookId = request.params?.id;
 
-    if (isNaN(authorId)) {
-      return response.status(400).json({ message: "Invalid author ID" });
+        await prisma.author.delete({
+            where: {
+                id: Number(bookId)
+            }
+        })
+
+        response.status(200).json({
+            message: 'Successfully Deleted',
+        })
+    } catch (exception) {
+        response.status(500).json({
+            message: 'Something went wrong',
+            error: exception.message
+        })
     }
-
-    await prisma.author.delete({ where: { id: authorId } });
-
-    response.status(200).json({
-      message: 'Successfully Deleted'
-    });
-  } catch (exception) {
-    console.error(exception);
-    response.status(500).json({
-      message: 'Something went wrong',
-      error: exception.message
-    });
-  }
 };

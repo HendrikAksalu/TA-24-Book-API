@@ -1,6 +1,7 @@
 import express from 'express';
 import bookRoutes from './routes/book.routes.js';
 import authorRoutes from './routes/author.routes.js';
+import authorRoutes from './routes/author.routes.js';
 
 const app = express();
 const PORT = 3000;
@@ -11,7 +12,7 @@ app.get('/welcome', (request, response) => {
     response.send('Welcome to the server!');
 });
 
-
+app.use('/api/v1', authRoutes);
 app.use('/api/v1', bookRoutes);
 app.use('/api/v1', authorRoutes);
 

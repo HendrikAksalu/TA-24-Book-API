@@ -1,21 +1,20 @@
 import prisma from '../config/prisma.js';
 
-export const getAllBooks = async (request, response) => {
+export const getAllAuthors = async (request, response) => {
   try {
-    // Extract query params with defaults
+    // Default query params
     const {
-      sort = "id",           // default sort field
-      sort_direction = "asc",// default order
-      take = 10,             // default page size
-      page = 1               // default page number
+      sort = "id",             // default sort field
+      sort_direction = "asc",  // default sort direction
+      take = 10,               // default page size
+      page = 1                 // default page number
     } = request.query;
 
-    // Parse numbers safely
     const takeNumber = Number(take) || 10;
     const pageNumber = Number(page) || 1;
     const skip = takeNumber * (pageNumber - 1);
 
-    const books = await prisma.book.findMany({
+    const authors = await prisma.author.findMany({
       orderBy: {
         [sort]: sort_direction
       },
@@ -24,8 +23,8 @@ export const getAllBooks = async (request, response) => {
     });
 
     response.json({
-      message: 'All books',
-      data: books
+      message: 'All authors',
+      data: authors
     });
   } catch (exception) {
     console.error(exception);
@@ -36,25 +35,25 @@ export const getAllBooks = async (request, response) => {
   }
 };
 
-export const getBookById = async (request, response) => {
+export const getAuthorById = async (request, response) => {
   try {
     const idFromURL = Number(request.params?.id);
 
     if (isNaN(idFromURL)) {
-      return response.status(400).json({ message: "Invalid book ID" });
+      return response.status(400).json({ message: "Invalid author ID" });
     }
 
-    const book = await prisma.book.findUnique({
+    const author = await prisma.author.findUnique({
       where: { id: idFromURL }
     });
 
-    if (!book) {
+    if (!author) {
       return response.status(404).json({ message: 'Not Found' });
     }
 
     response.status(200).json({
-      message: 'Successfully Found Book',
-      data: book
+      message: 'Successfully Found Author',
+      data: author
     });
   } catch (exception) {
     response.status(500).json({
@@ -64,22 +63,22 @@ export const getBookById = async (request, response) => {
   }
 };
 
-export const createBook = async (request, response) => {
+export const createAuthor = async (request, response) => {
   try {
-    const { title, description, thumbnail_url, release_year } = request.body;
+    const { name, bio, avatar_url, birth_year } = request.body;
 
-    const newBook = await prisma.book.create({
+    const newAuthor = await prisma.author.create({
       data: {
-        title,
-        description,
-        thumbnail_url,
-        release_year: Number(release_year),
+        name,
+        bio,
+        avatar_url,
+        birth_year: Number(birth_year)
       }
     });
 
     response.status(201).json({
-      message: 'Successfully Created Book',
-      data: newBook
+      message: 'Successfully Created Author',
+      data: newAuthor
     });
   } catch (exception) {
     response.status(500).json({
@@ -89,24 +88,24 @@ export const createBook = async (request, response) => {
   }
 };
 
-export const updateBook = async (request, response) => {
+export const updateAuthor = async (request, response) => {
   try {
     const { id } = request.params;
-    const { title, description, thumbnail_url, release_year } = request.body;
+    const { name, bio, avatar_url, birth_year } = request.body;
 
-    const updatedBook = await prisma.book.update({
+    const updatedAuthor = await prisma.author.update({
       where: { id: Number(id) },
       data: {
-        title,
-        description,
-        thumbnail_url,
-        release_year: Number(release_year),
+        name,
+        bio,
+        avatar_url,
+        birth_year: Number(birth_year)
       }
     });
 
     response.status(200).json({
-      message: 'Successfully Updated Book',
-      data: updatedBook
+      message: 'Successfully Updated Author',
+      data: updatedAuthor
     });
   } catch (exception) {
     console.error(exception);
@@ -117,18 +116,18 @@ export const updateBook = async (request, response) => {
   }
 };
 
-export const deleteBook = async (request, response) => {
+export const deleteAuthor = async (request, response) => {
   try {
-    const bookId = Number(request.params?.id);
+    const authorId = Number(request.params?.id);
 
-    if (isNaN(bookId)) {
-      return response.status(400).json({ message: "Invalid book ID" });
+    if (isNaN(authorId)) {
+      return response.status(400).json({ message: "Invalid author ID" });
     }
 
-    await prisma.book.delete({ where: { id: bookId } });
+    await prisma.author.delete({ where: { id: authorId } });
 
     response.status(200).json({
-      message: 'Successfully Deleted',
+      message: 'Successfully Deleted'
     });
   } catch (exception) {
     console.error(exception);
